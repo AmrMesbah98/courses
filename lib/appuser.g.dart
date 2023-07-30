@@ -12,6 +12,7 @@ UserDate _$UserDateFromJson(Map<String, dynamic> json) => UserDate(
       email: json['email'] as String,
       phone: json['phone'] as String,
       address: json['address'] as String,
+      pic: json['pic'] as String,
     );
 
 Map<String, dynamic> _$UserDateToJson(UserDate instance) => <String, dynamic>{
@@ -20,4 +21,5 @@ Map<String, dynamic> _$UserDateToJson(UserDate instance) => <String, dynamic>{
       'email': instance.email,
       'phone': instance.phone,
       'address': instance.address,
+      'pic': instance.pic,
     };

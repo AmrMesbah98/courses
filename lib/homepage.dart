@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'appuser.dart';
 import 'getdata.dart';
@@ -21,12 +25,14 @@ class _HomePageState extends State<HomePage> {
 
   late FirebaseAuth _mAuth;
   late FirebaseFirestore _firestore;
+  late Reference _storage;
 
   @override
   void initState() {
     super.initState();
     _mAuth = FirebaseAuth.instance;
     _firestore = FirebaseFirestore.instance;
+    _storage = FirebaseStorage.instance.ref();
   }
 
   @override
@@ -40,6 +46,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   UserDate? data;
+  
+  String downloadUrl="";
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +56,7 @@ class _HomePageState extends State<HomePage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(height: 50),
+            const SizedBox(height: 50),
             TextFormField(
               decoration: InputDecoration(
                 label: Text("firstName"),
@@ -129,6 +137,9 @@ class _HomePageState extends State<HomePage> {
               keyboardType: TextInputType.text,
             ),
             const SizedBox(height: 10),
+            ElevatedButton(onPressed: (){
+              saveImage();
+            }, child: const Text("take photo")),
             ElevatedButton(
                 onPressed: () {
                   saveUserDataInFireStore(
@@ -137,7 +148,9 @@ class _HomePageState extends State<HomePage> {
                     email.text,
                     phone.text,
                     address.text,
+                    downloadUrl,
                   );
+                  saveImageInFireStore(downloadUrl);
                 },
                 child: Text("up to firestore")),
             ElevatedButton(
@@ -153,15 +166,64 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+
+
+  // get image from camera with xfile path => image picker
+
+ Future<String?> uploadImage()
+  async {
+    var picker = ImagePicker();
+    XFile? xFile = await picker.pickImage(source: ImageSource.camera);
+    return xFile?.path;
+  }
+
+
+ Future<void> saveImage()
+  async {
+    String? path = await uploadImage();
+
+    String suffix = DateTime.now().second.toString();
+    
+    File file =File(path!);
+    
+    UploadTask task = _storage.child("image").child(_mAuth.currentUser!.uid).child("${_mAuth.currentUser!.uid}$suffix").putFile(file);
+    
+    task.whenComplete(() async {
+      downloadUrl= await  task.snapshot.ref.getDownloadURL();
+      saveImageInFireStore(downloadUrl);
+    });
+    
+
+  }
+
+  saveImageInFireStore(String downloadUrl)
+  {
+    if(data != null)
+      {
+       data?.pic = downloadUrl;
+       _firestore.collection("Data").doc(_mAuth.currentUser!.uid).set(data!.toJson());
+      }
+  }
+  
+  
+
+
+
+
+
+
+
+
   void saveUserDataInFireStore(String firstname, String lastName, String email,
-      String phone, String address) {
+      String phone, String address, String urlImage) {
     data = UserDate(
         firstName: firstname,
         lastName: lastName,
         email: email,
         phone: phone,
-        address: address);
-
+        address: address,
+        pic: urlImage,
+    );
     _firestore
         .collection('Data')
         .doc(_mAuth.currentUser!.uid)
