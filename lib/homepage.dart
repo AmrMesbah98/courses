@@ -4,7 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:onetry/cubit/bloc_image/image_cubit.dart';
+import 'package:onetry/search.dart';
+import 'package:onetry/searchbar.dart';
 
 import 'appuser.dart';
 import 'getdata.dart';
@@ -46,27 +50,42 @@ class _HomePageState extends State<HomePage> {
   }
 
   UserDate? data;
-  
-  String downloadUrl="";
+
+  String downloadUrl = "";
 
   @override
   Widget build(BuildContext context) {
+    return BlocConsumer<ImageCubit, ImageState>(
+  listener: (context, state) {},
+  builder: (context, state) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Home Page")),
+      appBar: AppBar(
+        title: const Text("Home Page"),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.black,
+        actions: [
+          IconButton(onPressed: (){
+            Navigator.push(context, MaterialPageRoute(builder: (_){
+              return  const Searchpage();
+            }));
+          }, icon: const Icon(Icons.search))
+        ],
+      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
             const SizedBox(height: 50),
             TextFormField(
               decoration: InputDecoration(
-                label: Text("firstName"),
+                label: const Text("firstName"),
                 hintText: "Enter your Name",
-                suffixIcon: Icon(Icons.person),
+                suffixIcon: const Icon(Icons.person),
                 enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(width: 1, color: Colors.black),
+                    borderSide: const BorderSide(width: 1, color: Colors.black),
                     borderRadius: BorderRadius.circular(20)),
                 focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(width: 1, color: Colors.blue),
+                    borderSide: const BorderSide(width: 1, color: Colors.blue),
                     borderRadius: BorderRadius.circular(20)),
               ),
               controller: firstname,
@@ -75,11 +94,11 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 10),
             TextFormField(
               decoration: InputDecoration(
-                label: Text("lastName"),
+                label: const Text("lastName"),
                 hintText: "Enter your Name",
-                suffixIcon: Icon(Icons.person),
+                suffixIcon: const Icon(Icons.person),
                 enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(width: 1, color: Colors.black),
+                    borderSide: const BorderSide(width: 1, color: Colors.black),
                     borderRadius: BorderRadius.circular(20)),
                 focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(width: 1, color: Colors.blue),
@@ -91,11 +110,11 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 10),
             TextFormField(
               decoration: InputDecoration(
-                label: Text("email"),
+                label: const Text("email"),
                 hintText: "Enter your Name",
-                suffixIcon: Icon(Icons.email),
+                suffixIcon: const Icon(Icons.email),
                 enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(width: 1, color: Colors.black),
+                    borderSide: const BorderSide(width: 1, color: Colors.black),
                     borderRadius: BorderRadius.circular(20)),
                 focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(width: 1, color: Colors.blue),
@@ -109,12 +128,12 @@ class _HomePageState extends State<HomePage> {
               decoration: InputDecoration(
                 label: Text("phone"),
                 hintText: "Enter your Name",
-                suffixIcon: Icon(Icons.phone),
+                suffixIcon: const Icon(Icons.phone),
                 enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(width: 1, color: Colors.black),
+                    borderSide: const BorderSide(width: 1, color: Colors.black),
                     borderRadius: BorderRadius.circular(20)),
                 focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(width: 1, color: Colors.blue),
+                    borderSide: const BorderSide(width: 1, color: Colors.blue),
                     borderRadius: BorderRadius.circular(20)),
               ),
               controller: phone,
@@ -123,7 +142,7 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 10),
             TextFormField(
               decoration: InputDecoration(
-                label: Text("address"),
+                label: const Text("address"),
                 hintText: "Enter your Name",
                 suffixIcon: Icon(Icons.location_on),
                 enabledBorder: OutlineInputBorder(
@@ -137,9 +156,14 @@ class _HomePageState extends State<HomePage> {
               keyboardType: TextInputType.text,
             ),
             const SizedBox(height: 10),
-            ElevatedButton(onPressed: (){
-              saveImage();
-            }, child: const Text("take photo")),
+            ElevatedButton(
+                onPressed: () {
+                  
+                  ImageCubit.get(context).saveImage();
+                  
+                //  saveImage();
+                },
+                child: const Text("take photo")),
             ElevatedButton(
                 onPressed: () {
                   saveUserDataInFireStore(
@@ -150,7 +174,9 @@ class _HomePageState extends State<HomePage> {
                     address.text,
                     downloadUrl,
                   );
-                  saveImageInFireStore(downloadUrl);
+                  
+                  ImageCubit.get(context).saveImageInFireStore(downloadUrl);
+                 // saveImageInFireStore(downloadUrl);
                 },
                 child: Text("up to firestore")),
             ElevatedButton(
@@ -164,65 +190,56 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  },
+);
   }
-
-
 
   // get image from camera with xfile path => image picker
 
- Future<String?> uploadImage()
-  async {
+  Future<String?> uploadImage() async {
     var picker = ImagePicker();
     XFile? xFile = await picker.pickImage(source: ImageSource.camera);
     return xFile?.path;
   }
 
-
- Future<void> saveImage()
-  async {
+  Future<void> saveImage() async {
     String? path = await uploadImage();
 
     String suffix = DateTime.now().second.toString();
-    
-    File file =File(path!);
-    
-    UploadTask task = _storage.child("image").child(_mAuth.currentUser!.uid).child("${_mAuth.currentUser!.uid}$suffix").putFile(file);
-    
+
+    File file = File(path!);
+
+    UploadTask task = _storage
+        .child("image")
+        .child(_mAuth.currentUser!.uid)
+        .child("${_mAuth.currentUser!.uid}$suffix")
+        .putFile(file);
+
     task.whenComplete(() async {
-      downloadUrl= await  task.snapshot.ref.getDownloadURL();
+      downloadUrl = await task.snapshot.ref.getDownloadURL();
       saveImageInFireStore(downloadUrl);
     });
-    
-
   }
 
-  saveImageInFireStore(String downloadUrl)
-  {
-    if(data != null)
-      {
-       data?.pic = downloadUrl;
-       _firestore.collection("Data").doc(_mAuth.currentUser!.uid).set(data!.toJson());
-      }
+  saveImageInFireStore(String downloadUrl) {
+    if (data != null) {
+      data?.pic = downloadUrl;
+      _firestore
+          .collection("Data")
+          .doc(_mAuth.currentUser!.uid)
+          .set(data!.toJson());
+    }
   }
-  
-  
-
-
-
-
-
-
-
 
   void saveUserDataInFireStore(String firstname, String lastName, String email,
       String phone, String address, String urlImage) {
     data = UserDate(
-        firstName: firstname,
-        lastName: lastName,
-        email: email,
-        phone: phone,
-        address: address,
-        pic: urlImage,
+      firstName: firstname,
+      lastName: lastName,
+      email: email,
+      phone: phone,
+      address: address,
+      pic: urlImage,
     );
     _firestore
         .collection('Data')
