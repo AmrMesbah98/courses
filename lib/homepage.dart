@@ -4,7 +4,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:onetry/cubit/bloc_image/image_cubit.dart';
 import 'package:onetry/search.dart';
 import 'package:onetry/searchbar.dart';
 
@@ -53,6 +55,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    return BlocConsumer<ImageCubit, ImageState>(
+  listener: (context, state) {},
+  builder: (context, state) {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Home Page"),
@@ -153,7 +158,10 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 10),
             ElevatedButton(
                 onPressed: () {
-                  saveImage();
+                  
+                  ImageCubit.get(context).saveImage();
+                  
+                //  saveImage();
                 },
                 child: const Text("take photo")),
             ElevatedButton(
@@ -166,7 +174,9 @@ class _HomePageState extends State<HomePage> {
                     address.text,
                     downloadUrl,
                   );
-                  saveImageInFireStore(downloadUrl);
+                  
+                  ImageCubit.get(context).saveImageInFireStore(downloadUrl);
+                 // saveImageInFireStore(downloadUrl);
                 },
                 child: Text("up to firestore")),
             ElevatedButton(
@@ -180,6 +190,8 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  },
+);
   }
 
   // get image from camera with xfile path => image picker
